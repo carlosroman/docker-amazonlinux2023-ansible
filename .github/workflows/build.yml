@@ -5,7 +5,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - '*'
   schedule:
     - cron: "10 2 * * 0"
 
@@ -14,12 +14,22 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: true
+      matrix:
+        platform: [ linux/amd64 , linux/arm64 ]
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Test building image.
-        run: docker build -t docker-ansible .
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and export to Docker
+        run: docker buildx build --platform ${{ matrix.platform }} -t docker-ansible --output type=docker .
 
       - name: Run the built image.
         run: >-
